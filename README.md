@@ -1,3 +1,3 @@
-service.subtitles.subtituloses
+service.subtitles.tusubtitulocom
 ==============================
-Subtitulos.es subtitle service plugin for XBMC
+Tusubtitulo.com subtitle service plugin for XBMC
