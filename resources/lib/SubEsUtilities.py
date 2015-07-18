@@ -6,25 +6,43 @@
 
 # updated to new gotham subtitles service by infinito
 
+# adapted to new tusubtitulo.com website by anon6
+
 import xbmc
 import re
 import urllib
 from operator import itemgetter
 from utils import languages
 
-main_url = "http://www.subtitulos.es/"
+main_url = "http://www.tusubtitulo.com/"
+debug_pretext = "tusubtitulo.com"
+series_pattern = "<img class=\"icon\" src=\"images/icon-television.png\"[^>]*><a href=\"/show/([^\"]+)\">:TVSHOW</a>"
 subtitle_pattern1 = "<div id=\"version\" class=\"ssdiv\">(.+?)Versi&oacute;n(.+?)<span class=\"right traduccion\">(.+?)</div>(.+?)</div>"
 subtitle_pattern2 = "<li class='li-idioma'>(.+?)<strong>(.+?)</strong>(.+?)<li class='li-estado (.+?)</li>(.+?)<span class='descargar (.+?)</span>"
 
 def log(module, msg):
-	xbmc.log((u"### [%s] - %s" % (module,msg,)).encode('utf-8'), level=xbmc.LOGDEBUG)
+	xbmc.log("### [%s] - %s" % (module,msg,), level=xbmc.LOGDEBUG)
 
 def search_tvshow(tvshow, season, episode, languages, filename):
 	subs = list()
+
+	url = main_url + 'series.php'
+	content = geturl(url)
+
 	for level in range(4):
 		searchstring, ttvshow, sseason, eepisode = getsearchstring(tvshow, season, episode, level)
-		url = main_url + searchstring.lower()
-		subs.extend(getallsubsforurl(url, languages, None, ttvshow, sseason, eepisode, level))
+
+		serie_pattern = re.sub(':TVSHOW', ttvshow, series_pattern)
+		#log( __name__ ,"%s Serie pattern = %s" % (debug_pretext, serie_pattern))
+
+		for matches in re.finditer(serie_pattern, content, re.IGNORECASE | re.DOTALL | re.MULTILINE | re.UNICODE):
+			numshow = matches.group(1)
+			#log( __name__ ,"%s numshow = %s" % (debug_pretext, numshow))
+
+			url = main_url + searchstring + '/' + numshow
+			#log( __name__ ,"%s url = %s" % (debug_pretext, url))
+
+			subs.extend(getallsubsforurl(url, languages, None, ttvshow, sseason, eepisode, level))
 		
 	subs = clean_subtitles_list(subs)
 	subs = order_subtitles_list(subs)
@@ -48,11 +66,15 @@ def getsearchstring(tvshow, season, episode, level):
 	# Zero pad episode
 	episode = str(episode).rjust(2, '0')
 
+	tvshow = tvshow.strip()
+
 	# Build search string
-	searchstring = tvshow + '/' + season + 'x' + episode
+	searchstring = 'serie/' + tvshow + '/' + season + '/' + episode
 
 	# Replace spaces with dashes
 	searchstring = re.sub(r'\s', '-', searchstring)
+
+	searchstring = searchstring.lower()
 
 	#log( __name__ ,"%s Search string = %s" % (debug_pretext, searchstring))
 	return searchstring, tvshow, season, episode
@@ -81,6 +103,8 @@ def getallsubsforurl(url, langs, file_original_path, tvshow, season, episode, le
 			lang = re.sub(r'\xc3\xa0', 'a', lang)
 			lang = re.sub(r'\xc3\xa9', 'e', lang)
 
+			#log( __name__ ,"lang: %s" % (lang))
+
 			if lang in languages:
 				languageshort = languages[lang][1]
 				languagelong = languages[lang][0]
@@ -95,15 +119,23 @@ def getallsubsforurl(url, langs, file_original_path, tvshow, season, episode, le
 				server = filename
 				order = 1 + languages[lang][3]
 
+			#log( __name__ ,"lang: %s - %s - %s" % (lang,languageshort,languagelong))
+
 			estado = matches.group(4)
-			estado = re.sub(r'\t', '', estado)
-			estado = re.sub(r'\n', '', estado)
+			estado = re.sub(r'\s', '', estado)
+
+			#log( __name__ ,"estado: %s" % (estado))
 
 			id = matches.group(6)
 			id = re.sub(r'([^-]*)href="', '', id)
+			id = re.sub(r'">original([^-]*)', '', id)
+			id = re.sub(r'"><b>([^-]*)', '', id)
+			id = re.sub(r'"><img ([^-]*)', '', id)
 			id = re.sub(r'" rel([^-]*)', '', id)
 			id = re.sub(r'" re([^-]*)', '', id)
-			id = re.sub(r'http://www.subtitulos.es/', '', id)
+			id = re.sub(r'http://www.tusubtitulo.com/', '', id)
+
+			#log( __name__ ,"id: %s" % (id))
 
 			if estado.strip() == "green'>Completado".strip() and languageshort in langs:
 				subtitles_list.append({'rating': "0", 'no_files': 1, 'filename': filename, 'server': server, 'sync': False, 'id' : id, 'language_flag': languageshort + '.gif', 'language_name': languagelong, 'hearing_imp': False, 'link': main_url + id, 'lang': languageshort, 'order': order})
@@ -124,7 +156,7 @@ def geturl(url):
 				urllib._urlopener.addheader('Referer', url)
 
 	urllib._urlopener = AppURLopener()
-	urllib._urlopener.add_referrer("http://www.subtitulos.es/")
+	urllib._urlopener.add_referrer("http://www.tusubtitulo.com/")
 	try:
 		response = urllib._urlopener.open(url)
 		content    = response.read()
