@@ -5,6 +5,7 @@
        provider-name="anon6">
   <requires>
     <import addon="xbmc.python" version="2.14.0"/>
+    <import addon="script.common.plugin.cache" version="2.5.5"/>
   </requires>
   <extension point="xbmc.subtitle.module"
              library="service.py" />

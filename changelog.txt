@@ -1,4 +1,8 @@
-0.0.6- Adapted to new tusubtitulo.com website by anon6
+0.0.7
+- Series list cached
+
+0.0.6
+- Adapted to new tusubtitulo.com website by anon6
 
 0.0.5- Addon now maintained by m0r3 due to one year without fixing bugs
      - Updated addon.xml

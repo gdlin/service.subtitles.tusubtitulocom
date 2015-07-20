@@ -13,12 +13,17 @@ import re
 import urllib
 from operator import itemgetter
 from utils import languages
+try:
+	import StorageServer
+except:
+	import storageserverdummy as StorageServer
 
 main_url = "http://www.tusubtitulo.com/"
 debug_pretext = "tusubtitulo.com"
 series_pattern = "<img class=\"icon\" src=\"images/icon-television.png\"[^>]*><a href=\"/show/([^\"]+)\">:TVSHOW</a>"
 subtitle_pattern1 = "<div id=\"version\" class=\"ssdiv\">(.+?)Versi&oacute;n(.+?)<span class=\"right traduccion\">(.+?)</div>(.+?)</div>"
 subtitle_pattern2 = "<li class='li-idioma'>(.+?)<strong>(.+?)</strong>(.+?)<li class='li-estado (.+?)</li>(.+?)<span class='descargar (.+?)</span>"
+cache = StorageServer.StorageServer("tusubtitulocom", 168)
 
 def log(module, msg):
 	xbmc.log("### [%s] - %s" % (module,msg,), level=xbmc.LOGDEBUG)
@@ -26,27 +31,42 @@ def log(module, msg):
 def search_tvshow(tvshow, season, episode, languages, filename):
 	subs = list()
 
-	url = main_url + 'series.php'
-	content = geturl(url)
+	retry = True
 
-	for level in range(4):
-		searchstring, ttvshow, sseason, eepisode = getsearchstring(tvshow, season, episode, level)
+	while True:
+		content = cache.cacheFunction(getseries)
 
-		serie_pattern = re.sub(':TVSHOW', ttvshow, series_pattern)
-		#log( __name__ ,"%s Serie pattern = %s" % (debug_pretext, serie_pattern))
+		for level in range(4):
+			searchstring, ttvshow, sseason, eepisode = getsearchstring(tvshow, season, episode, level)
 
-		for matches in re.finditer(serie_pattern, content, re.IGNORECASE | re.DOTALL | re.MULTILINE | re.UNICODE):
-			numshow = matches.group(1)
-			#log( __name__ ,"%s numshow = %s" % (debug_pretext, numshow))
+			serie_pattern = re.sub(':TVSHOW', ttvshow, series_pattern)
+			#log( __name__ ,"%s Serie pattern = %s" % (debug_pretext, serie_pattern))
 
-			url = main_url + searchstring + '/' + numshow
-			#log( __name__ ,"%s url = %s" % (debug_pretext, url))
+			for matches in re.finditer(serie_pattern, content, re.IGNORECASE | re.DOTALL | re.MULTILINE | re.UNICODE):
+				retry = False
+				numshow = matches.group(1)
+				#log( __name__ ,"%s numshow = %s" % (debug_pretext, numshow))
 
-			subs.extend(getallsubsforurl(url, languages, None, ttvshow, sseason, eepisode, level))
-		
+				url = main_url + searchstring + '/' + numshow
+				#log( __name__ ,"%s url = %s" % (debug_pretext, url))
+
+				subs.extend(getallsubsforurl(url, languages, None, ttvshow, sseason, eepisode, level))
+
+		if retry:
+			#log( __name__ ,"%s retry" % (debug_pretext))
+			cache.delete("%")
+			retry = False
+		else:
+			break
+
 	subs = clean_subtitles_list(subs)
 	subs = order_subtitles_list(subs)
 	return subs
+
+def getseries():
+	#log( __name__ ,"%s getseries list" % (debug_pretext))
+	url = main_url + 'series.php'
+	return geturl(url)
 		
 def getsearchstring(tvshow, season, episode, level):
 
