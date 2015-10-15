@@ -22,7 +22,7 @@ main_url = "http://www.tusubtitulo.com/"
 debug_pretext = "tusubtitulo.com"
 series_pattern = "<img class=\"icon\" src=\"images/icon-television.png\"[^>]*><a href=\"/show/([^\"]+)\">:TVSHOW</a>"
 subtitle_pattern1 = "<div id=\"version\" class=\"ssdiv\">(.+?)Versi&oacute;n(.+?)<span class=\"right traduccion\">(.+?)</div>(.+?)</div>"
-subtitle_pattern2 = "<li class='li-idioma'>(.+?)<strong>(.+?)</strong>(.+?)<li class='li-estado (.+?)</li>(.+?)<span class='descargar (.+?)</span>"
+subtitle_pattern2 = "<li class='li-idioma'>(.+?)<strong>(.+?)</strong>(.+?)<li class='li-estado (.+?)</li>(.+?)<li class='descargar (.+?)'>(.+?)</li>"
 cache = StorageServer.StorageServer("tusubtitulocom", 168)
 
 def log(module, msg):
@@ -146,7 +146,7 @@ def getallsubsforurl(url, langs, file_original_path, tvshow, season, episode, le
 
 			#log( __name__ ,"estado: %s" % (estado))
 
-			id = matches.group(6)
+			id = matches.group(7)
 			id = re.sub(r'([^-]*)href="', '', id)
 			id = re.sub(r'">original([^-]*)', '', id)
 			id = re.sub(r'"><b>([^-]*)', '', id)
@@ -204,4 +204,3 @@ if __name__ == "__main__":
 	subs = search_tvshow("les revenants", "1", "1", "es,en,fr", None)
 	for sub in subs: print sub['server'], sub['link']
 """
-
